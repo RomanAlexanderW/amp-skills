@@ -1,0 +1,23 @@
+Copyright (c) Anthropic, PBC.
+
+You may use these materials according to your service agreement with Anthropic,
+governed by either Anthropic's Consumer Terms of Service
+(https://www.anthropic.com/legal/consumer-terms) or Commercial Terms of Service
+(https://www.anthropic.com/legal/commercial-terms), as applicable.
+
+You may not: (a) extract these materials from the Services or through other
+means access them outside the Services, (b) use automated means to access
+these materials outside of the Services, (c) reproduce these materials except
+for temporary, automatic copies made as part of your normal use of the
+Services, (d) create derivative works of these materials, (e) distribute,
+display, or otherwise make these materials available to third parties, (f) use
+any inventions disclosed in these materials to commercialize any products or
+services outside the Services, or (g) reverse engineer, decompile, or
+otherwise attempt to derive the source code or underlying ideas or algorithms
+of these materials.
+
+Anthropic retains all right, title, and interest in these materials, including
+all copyrights, patents, trade secrets, trademarks, and other intellectual
+property rights therein. Nothing in this notice or your possession of these
+materials grants you any right, title, or interest in these materials other
+than the limited rights expressly set forth herein.
