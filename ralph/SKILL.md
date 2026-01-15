@@ -619,15 +619,17 @@ For UI tasks, specify the right verification method:
 
 **Functional testing** (checking behavior, not appearance):
 ```
-Use Chrome DevTools MCP with take_snapshot to read page content
+Use agent-browser with snapshot -i to read page content
 ```
-- `take_snapshot` returns the a11y tree as text that can be read and verified
+- `agent-browser snapshot -i` returns interactive elements with refs that can be verified
 - Use for: button exists, text appears, form works
+- Example: `agent-browser snapshot -i | grep "Submit"` to verify button exists
 
 **Visual testing** (checking appearance):
 ```
-Use take_screenshot to capture and verify visual appearance
+Use agent-browser screenshot to capture and verify visual appearance
 ```
+- `agent-browser screenshot tmp/result.png` saves a screenshot
 - Use for: layout, colors, styling, animations
 
 ---
