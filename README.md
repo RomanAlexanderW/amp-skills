@@ -8,34 +8,12 @@ Skills are domain-specific instruction sets that extend Amp's capabilities. When
 
 ## Available Skills
 
-### Marketing & Content
-- **brand-voice** - Define or extract a consistent brand voice
-- **positioning-angles** - Find the angle that makes something sell
-- **direct-response-copy** - Write copy that converts
-- **lead-magnet** - Generate lead magnet concepts
-- **content-atomizer** - Transform content into platform-optimized assets
-- **email-sequences** - Build email sequences that convert
-- **newsletter** - Create best-in-class newsletters
-- **keyword-research** - Strategic keyword research without expensive tools
-- **seo-content** - Create SEO-optimized content that ranks
-- **orchestrator** - Marketing strategist that routes to the right skill(s)
-
-### Development
 - **ralph** - Autonomous feature development (setup and execution)
-- **compound-engineering** - Plan → Work → Review → Compound workflow
-- **prd** - Generate Product Requirements Documents
-- **frontend-design** - Create distinctive, production-grade interfaces
 - **agent-browser** - Browser automation for testing, form filling, screenshots
-- **react-best-practices** - React/Next.js performance optimization (40+ rules from Vercel)
-- **web-design-guidelines** - UI/UX audit against 100+ best practices
+- **react-best-practices** - React/Next.js performance optimization (40+ rules from Vercel) *
+- **web-design-guidelines** - UI/UX audit against 100+ best practices *
 
-### Document Handling
-- **pdf** - PDF manipulation (extract, create, merge, split, forms)
-- **docx** - Word document creation, editing, and analysis
-- **xlsx** - Spreadsheet creation, editing, and analysis
-
-### Utilities
-- **web-artifacts-builder** - Create multi-component HTML artifacts for claude.ai
+\* Symlinked from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills)
 
 ## Usage
 
