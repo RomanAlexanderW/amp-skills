@@ -21,12 +21,13 @@ Skills are domain-specific instruction sets that extend Amp's capabilities. When
 - **orchestrator** - Marketing strategist that routes to the right skill(s)
 
 ### Development
-- **ralph** - Set up Ralph for autonomous feature development
-- **build-feature** - Autonomous task loop for implementing features
+- **ralph** - Autonomous feature development (setup and execution)
 - **compound-engineering** - Plan → Work → Review → Compound workflow
 - **prd** - Generate Product Requirements Documents
 - **frontend-design** - Create distinctive, production-grade interfaces
-- **dev-browser** - Browser automation with persistent page state
+- **agent-browser** - Browser automation for testing, form filling, screenshots
+- **react-best-practices** - React/Next.js performance optimization (40+ rules from Vercel)
+- **web-design-guidelines** - UI/UX audit against 100+ best practices
 
 ### Document Handling
 - **pdf** - PDF manipulation (extract, create, merge, split, forms)
