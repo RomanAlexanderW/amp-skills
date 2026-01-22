@@ -1,6 +1,6 @@
 ---
 name: ralph
-description: "Set up Ralph for autonomous feature development. Use when starting a new feature that Ralph will implement. Triggers on: ralph, set up ralph, start ralph, new ralph feature, ralph setup. Chats through the feature idea, creates tasks with dependencies, and sets up everything for Ralph to run."
+description: "Autonomous feature development - setup and execution. Triggers on: ralph, set up ralph, run ralph, run the loop, implement tasks. Two phases: (1) Setup - chat through feature, create tasks with dependencies (2) Loop - pick ready tasks, implement, commit, repeat until done."
 ---
 
 # Ralph Feature Setup
@@ -177,17 +177,7 @@ Show the user what was created:
 3. [Task 3 title] - depends on #2
 ...
 
-**To run Ralph:**
-```bash
-./scripts/ralph/ralph.sh [max_iterations]
-# or directly:
-npx tsx scripts/ralph/ralph.ts [max_iterations]
-```
-
-**To check status:**
-```bash
-amp task list --parentID [parent-id] --limit 10
-```
+**To start Ralph:** Say "run ralph" or "start the loop" - I'll use handoff to execute the first ready task, and each task will hand off to the next until complete.
 
 ---
 
@@ -197,7 +187,18 @@ If the user already has tasks created, help them set up Ralph to run them.
 
 ### Find the parent task:
 
-Ask the user:
+**First, check if a parent task is already saved:**
+
+```bash
+cat scripts/ralph/parent-task-id.txt
+```
+
+If this file exists and contains a task ID, use it! Verify it's valid by fetching the task:
+```
+task_list action: "get", taskID: "<id-from-file>"
+```
+
+**Only if no saved parent task exists**, ask the user:
 ```
 What's the parent task? You can give me:
 - The task ID directly
@@ -261,12 +262,7 @@ These tasks don't have dependencies set. Should I:
 **Next task Ralph will pick:**
 [Task title] - [brief description]
 
-**To run Ralph:**
-```bash
-./scripts/ralph/ralph.sh [max_iterations]
-# or directly:
-npx tsx scripts/ralph/ralph.ts [max_iterations]
-```
+**To start Ralph:** Say "run ralph" or "start the loop"
 
 ---
 
@@ -425,7 +421,7 @@ Does this look right? Any tasks to add or remove?
 
 **Subtasks:** 14 tasks created with dependencies
 
-**To run:** `./scripts/ralph/ralph.sh 20`
+**To start:** Say "run ralph" or "start the loop"
 
 ---
 
@@ -433,8 +429,8 @@ Does this look right? Any tasks to add or remove?
 
 When all subtasks are completed:
 1. Ralph marks the **parent task** as `completed`
-2. Ralph outputs `<promise>COMPLETE</promise>`
-3. The ralph.sh/ralph.ts loop detects this and exits
+2. Reports "✅ Build complete - all tasks finished!"
+3. Summarizes what was accomplished
 
 **Important:** Ralph uses `limit: 5` when querying tasks to avoid context overflow. If you have many subtasks, they'll be processed over multiple iterations.
 
@@ -450,3 +446,228 @@ When all subtasks are completed:
 - [ ] Descriptions have enough detail for Ralph to implement without context
 - [ ] Parent task ID saved to scripts/ralph/parent-task-id.txt
 - [ ] Previous run archived if progress.txt had content
+
+---
+
+# Phase 2: The Execution Loop
+
+Once setup is complete, Ralph runs the autonomous loop to implement tasks one by one.
+
+---
+
+## Loop Workflow
+
+### 0. Get the parent task ID
+
+First, read the parent task ID that scopes this feature:
+
+```bash
+cat scripts/ralph/parent-task-id.txt
+```
+
+If this file doesn't exist, ask the user which parent task to work on.
+
+**Check if this is a new feature:** Compare the parent task ID to the one in `scripts/ralph/progress.txt` header. If they differ (or progress.txt doesn't exist), this is a NEW feature - reset progress.txt:
+
+```markdown
+# Build Progress Log
+Started: [today's date]
+Feature: [parent task title]
+
+## Codebase Patterns
+(Patterns discovered during this feature build)
+
+---
+```
+
+This ensures each feature starts with a clean slate. Progress.txt is SHORT-TERM memory for the current feature only.
+
+### 1. Check for ready tasks (with nested hierarchy support)
+
+The task hierarchy may have multiple levels (parent → container → leaf tasks). Use this approach to find all descendant tasks:
+
+**Step 1: Get all tasks for the repo**
+```
+task_list action: "list", repoURL: "<repo-url>", ready: true, status: "open", limit: 10
+```
+
+**Important:** Always use `limit` (5-10) to avoid context overflow with many tasks.
+
+**Step 2: Build the descendant set**
+Starting from the parent task ID, collect all tasks that are descendants:
+1. Find tasks where `parentID` equals the parent task ID (direct children)
+2. For each child found, recursively find their children
+3. Continue until no more descendants are found
+
+**Step 3: Filter to workable tasks**
+From the descendant set, select tasks that are:
+- `ready: true` (all dependencies satisfied)
+- `status: "open"` 
+- Leaf tasks (no children of their own) - these are the actual work items
+
+**CRITICAL:** Skip container tasks that exist only to group other tasks. A container task has other tasks with its ID as their `parentID`.
+
+### 2. If no ready tasks
+
+Check if all descendant tasks are completed:
+- Query `task_list list` with `repoURL: "<repo-url>"` (no ready filter)
+- Build the full descendant set (same recursive approach as step 1)
+- If all leaf tasks in the descendant set are `completed`:
+  1. Archive progress.txt:
+     ```bash
+     DATE=$(date +%Y-%m-%d)
+     FEATURE="feature-name-here"
+     mkdir -p scripts/ralph/archive/$DATE-$FEATURE
+     mv scripts/ralph/progress.txt scripts/ralph/archive/$DATE-$FEATURE/
+     ```
+  2. Create fresh progress.txt with empty template
+  3. Clear parent-task-id.txt: `echo "" > scripts/ralph/parent-task-id.txt`
+  4. Commit: `git add scripts/ralph && git commit -m "chore: archive progress for [feature-name]"`
+  5. Mark the parent task as `completed`
+  6. Stop and report "✅ Build complete - all tasks finished!"
+- If some are blocked: Report which tasks are blocked and why
+
+### 3. If ready tasks exist
+
+**Pick the next task:**
+- Prefer tasks related to what was just completed (same module/area, dependent work)
+- If no prior context, pick the first ready task
+
+**Execute the task:**
+
+Use the `handoff` tool with this goal:
+
+```
+Implement and verify task [task-id]: [task-title].
+
+[task-description]
+
+FIRST: Read scripts/ralph/progress.txt - check the "Codebase Patterns" section for important context from previous iterations.
+
+When complete:
+
+1. Run quality checks: `npm run typecheck` and `npm test`
+   - If either fails, FIX THE ISSUES and re-run until both pass
+   - Do NOT proceed until quality checks pass
+
+2. Update AGENTS.md files if you learned something important:
+   - Check for AGENTS.md in directories where you edited files
+   - Add learnings that future developers/agents should know (patterns, gotchas, dependencies)
+   - This is LONG-TERM memory - things anyone editing this code should know
+   - Do NOT add task-specific details or temporary notes
+
+3. Update progress.txt (APPEND, never replace) - this is SHORT-TERM memory for the current feature:
+   ```
+   ## [Date] - [Task Title]
+   Thread: [current thread URL]
+   Task ID: [task-id]
+   - What was implemented
+   - Files changed
+   - **Learnings for future iterations:**
+     - Patterns discovered
+     - Gotchas encountered
+     - Useful context
+   ---
+   ```
+
+4. If you discovered a reusable pattern for THIS FEATURE, add it to the `## Codebase Patterns` section at the TOP of progress.txt
+
+5. Commit all changes with message: `feat: [Task Title]`
+
+6. Mark task as completed: `task_list action: "update", taskID: "[task-id]", status: "completed"`
+
+7. Invoke the ralph skill to continue the loop
+```
+
+---
+
+## Progress File Format
+
+```markdown
+# Build Progress Log
+Started: [date]
+Feature: [feature name]
+Parent Task: [parent-task-id]
+
+## Codebase Patterns
+(Patterns discovered during this feature build)
+
+---
+
+## [Date] - [Task Title]
+Thread: https://ampcode.com/threads/[thread-id]
+Task ID: [id]
+- What was implemented
+- Files changed
+- **Learnings for future iterations:**
+  - Patterns discovered
+  - Gotchas encountered
+---
+```
+
+**Note:** When a new feature starts with a different parent task ID, reset progress.txt completely. Long-term learnings belong in AGENTS.md files, not progress.txt.
+
+---
+
+## Task Discovery
+
+While working, **liberally create new tasks** when you discover:
+- Failing tests or test gaps
+- Code that needs refactoring
+- Missing error handling
+- Documentation gaps
+- TODOs or FIXMEs in the code
+- Build/lint warnings
+- Performance issues
+
+Use `task_list action: "create"` immediately. Set appropriate `dependsOn` relationships.
+
+---
+
+## Browser Verification
+
+For UI tasks, specify the right verification method:
+
+**Functional testing** (checking behavior, not appearance):
+```
+Use agent-browser with snapshot -i to read page content
+```
+- `agent-browser snapshot -i` returns interactive elements with refs that can be verified
+- Use for: button exists, text appears, form works
+- Example: `agent-browser snapshot -i | grep "Submit"` to verify button exists
+
+**Visual testing** (checking appearance):
+```
+Use agent-browser screenshot to capture and verify visual appearance
+```
+- `agent-browser screenshot tmp/result.png` saves a screenshot
+- Use for: layout, colors, styling, animations
+
+---
+
+## Quality Requirements
+
+Before marking any task complete:
+- `npm run typecheck` must pass
+- `npm test` must pass
+- Changes must be committed
+- Progress must be logged
+
+---
+
+## Stop Condition
+
+When no ready tasks remain AND all tasks are completed:
+1. Output: "✅ Build complete - all tasks finished!"
+2. Summarize what was accomplished
+
+---
+
+## Important Notes
+
+- Always use `ready: true` when listing tasks to only get tasks with satisfied dependencies
+- Always use `limit: 5-10` when listing tasks to avoid context overflow
+- Each handoff runs in a fresh thread with clean context
+- Progress.txt is the memory between iterations - keep it updated
+- Prefer tasks in the same area as just-completed work for better context continuity
+- The handoff goal MUST include instructions to update progress.txt, commit, and re-invoke this skill
